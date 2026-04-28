@@ -11,10 +11,10 @@ class Config:
 
     @classmethod
     def load(cls, config_path: str = "config.txt") -> "Config":
-        base_url = os.environ.get("SOUSHUBA_URL", "")
-        username = os.environ.get("SOUSHUBA_USERNAME", "")
-        password = os.environ.get("SOUSHUBA_PASSWORD", "")
-        entry_url = os.environ.get("SOUSHUBA_ENTRY_URL", "http://soushu2030.com")
+        base_url = os.environ.get("SOUSHUBA_URL") or ""
+        username = os.environ.get("SOUSHUBA_USERNAME") or ""
+        password = os.environ.get("SOUSHUBA_PASSWORD") or ""
+        entry_url = os.environ.get("SOUSHUBA_ENTRY_URL") or "http://soushu2030.com"
 
         if not base_url or not username or not password:
             if os.path.exists(config_path):
@@ -49,5 +49,9 @@ class Config:
             f.write("\n".join(lines))
 
     @property
-    def is_valid(self) -> bool:
-        return bool(self.base_url and self.username and self.password != "userpassword")
+    def has_credentials(self) -> bool:
+        return bool(self.username and self.password != "userpassword")
+
+    @property
+    def has_url(self) -> bool:
+        return bool(self.base_url)
