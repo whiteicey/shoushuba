@@ -1,0 +1,32 @@
+name: Daily Soushubar Check-in
+
+on:
+  schedule:
+    - cron: "30 16 * * *"  # 每天 00:30 UTC+8
+  workflow_dispatch:       # 允许手动触发
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run check-in
+        env:
+          SOUSHUBA_URL: ${{ secrets.SOUSHUBA_URL }}
+          SOUSHUBA_USERNAME: ${{ secrets.SOUSHUBA_USERNAME }}
+          SOUSHUBA_PASSWORD: ${{ secrets.SOUSHUBA_PASSWORD }}
+          SOUSHUBA_ENTRY_URL: ${{ secrets.SOUSHUBA_ENTRY_URL }}
+        run: python main.py

@@ -1,0 +1,73 @@
+搜书吧自动签到评论脚本（重构版）
+
+## 本地使用
+
+### 安装依赖
+```bash
+pip install -r requirements.txt
+```
+
+### 配置
+方式一（推荐）：在同目录下创建 `config.txt`，每行一个配置：
+```
+https://www.soushu2028.com/
+你的用户名（中文用户名请用邮箱替代）
+你的密码
+```
+
+方式二：设置环境变量
+```bash
+export SOUSHUBA_URL="https://www.soushu2028.com/"
+export SOUSHUBA_USERNAME="你的用户名"
+export SOUSHUBA_PASSWORD="你的密码"
+```
+
+如果 `config.txt` 中第一行 URL 为空，脚本会自动从 `SOUSHUBA_ENTRY_URL`（默认 http://soushu2030.com）发现最新URL并回写。
+
+### 运行
+```bash
+python main.py
+```
+
+## 通过 GitHub Actions 每日自动运行
+
+### 1. Fork 或上传到你的 GitHub 仓库
+
+### 2. 设置 GitHub Secrets
+在仓库 Settings → Secrets and variables → Actions 中添加以下 Secrets：
+
+| Secret 名称           | 说明                                    | 必填 |
+|-----------------------|-----------------------------------------|------|
+| `SOUSHUBA_USERNAME`   | 用户名（中文名用邮箱替代）              | 是   |
+| `SOUSHUBA_PASSWORD`   | 密码                                    | 是   |
+| `SOUSHUBA_URL`        | 当前搜书吧URL                           | 否   |
+| `SOUSHUBA_ENTRY_URL`  | 永久入口URL，用于自动发现最新域名       | 否   |
+
+- 如果不填 `SOUSHUBA_URL`，脚本会从 `SOUSHUBA_ENTRY_URL` 自动跟踪跳转找到最新URL
+- 默认 `SOUSHUBA_ENTRY_URL` 为 `http://soushu2030.com`
+
+### 3. 启用 Actions
+GitHub Actions 默认在 fork 的仓库中禁用，需要在仓库的 Actions 页面手动启用。
+
+### 4. 运行时机
+- 每天北京时间 00:30 自动运行
+- 也可以在 Actions 页面手动触发 (`workflow_dispatch`)
+
+## 项目结构
+```
+├── .github/workflows/daily.yml   # GitHub Actions 工作流
+├── soushubar/
+│   ├── __init__.py
+│   ├── config.py                 # 配置管理（支持env和config.txt）
+│   ├── url_finder.py             # URL自动发现（跟踪跳转链）
+│   └── checkin.py                # 登录、签到、评论核心逻辑
+├── main.py                       # 入口
+├── requirements.txt
+├── config.txt.example            # 配置文件示例
+└── .gitignore
+```
+
+## 注意事项
+- 用户名如果是中文，请使用邮箱代替
+- 每次运行最多评论3条，每条间隔65秒
+- config.txt 已被 .gitignore 忽略，不会上传到GitHub
