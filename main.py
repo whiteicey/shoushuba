@@ -19,10 +19,10 @@ def main():
         sys.exit(1)
 
     if not config.has_url:
-        print(f"[INFO] 正在从 {config.entry_url} 发现新URL...")
+        print(f"[INFO] 正在从 {config.entry_url} 发现新URL...", flush=True)
         config.base_url = find_current_url(config.entry_url)
         config.save_url()
-        print(f"[INFO] 发现新URL: {config.base_url}")
+        print(f"[INFO] 发现新URL: {config.base_url}", flush=True)
 
     client = SoushubarClient(
         base_url=config.base_url,

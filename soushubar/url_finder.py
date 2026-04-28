@@ -35,7 +35,7 @@ def find_current_url(entry_url: str) -> str:
                 f"from {entry_url}. Last URL: {current}"
             )
 
-        print(f"[URL Finder] {current} -> {next_url}")
+        print(f"[URL Finder] {current} -> {next_url}", flush=True)
         current = next_url
 
     raise RuntimeError(

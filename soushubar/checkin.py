@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import re
+import sys
 import time
 
 import requests
@@ -66,10 +67,16 @@ class SoushubarClient:
         }
 
         resp = self.session.post(url=login_url, headers=headers, data=data)
-        if f"window.location.href='{self.base_url}/';" in resp.text:
-            print(f"账号 {self.username} 登录成功")
+        text = resp.text
+
+        if "window.location.href=" in text:
+            print(f"账号 {self.username} 登录成功", flush=True)
+        elif "登录失败" in text or "密码错误" in text:
+            print(f"[ERROR] 登录响应: {text[:500]}", flush=True)
+            raise RuntimeError("登录失败，账号或密码错误")
         else:
-            raise RuntimeError("登录失败，请检查账号密码或URL")
+            print(f"[ERROR] 登录响应(前500字): {text[:500]}", flush=True)
+            raise RuntimeError(f"登录失败，未知错误，URL: {self.base_url}")
 
         self._fetch_coins()
         self._extract_formhash()
