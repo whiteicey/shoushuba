@@ -24,7 +24,7 @@ def find_current_url(entry_url: str) -> str:
             raise RuntimeError(f"Failed to fetch {current}: {e}")
 
         if "forum.php" in resp.text:
-            return current.rstrip("/")
+            return resp.url.rstrip("/")
 
         soup = BeautifulSoup(resp.text, "html.parser")
         next_url = _extract_redirect(soup, current, resp)
