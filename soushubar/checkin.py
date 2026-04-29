@@ -22,7 +22,9 @@ COMMENT_MESSAGES = [
 ]
 
 MAX_SUCCESSFUL_COMMENTS = 3
-RETRY_DELAY = 65
+RETRY_DELAY = 65  # seconds between comment attempts
+CONNECT_RETRIES = 3  # max retries on connection errors
+CONNECT_BACKOFF = 5  # base seconds for exponential backoff
 
 
 class SoushubarClient:
@@ -41,10 +43,15 @@ class SoushubarClient:
             raise RuntimeError("No thread IDs found for commenting")
 
         success_count = 0
-        while success_count < MAX_SUCCESSFUL_COMMENTS:
-            success_count = self._post_comment(success_count, thread_ids)
-            if success_count < MAX_SUCCESSFUL_COMMENTS:
-                time.sleep(RETRY_DELAY)
+        try:
+            while success_count < MAX_SUCCESSFUL_COMMENTS:
+                success_count = self._post_comment(success_count, thread_ids)
+                if success_count < MAX_SUCCESSFUL_COMMENTS:
+                    jitter = random.randint(-15, 15)
+                    time.sleep(RETRY_DELAY + jitter)
+        except Exception as e:
+            print(f"[ERROR] 签到过程出错: {e}", flush=True)
+            print(f"已成功评论: {success_count}/{MAX_SUCCESSFUL_COMMENTS}")
 
         print(f"签到完成，共成功评论 {success_count} 次")
 
@@ -138,10 +145,33 @@ class SoushubarClient:
             f"&replysubmit=yes&inajax=1"
         )
 
-        resp = self.session.post(url=comment_url, headers={
-            "Cache-Control": "no-cache",
-            "Referer": self.base_url,
-        }, data=payload)
+        for attempt in range(CONNECT_RETRIES):
+            try:
+                resp = self.session.post(url=comment_url, headers={
+                    "Cache-Control": "no-cache",
+                    "Referer": self.base_url,
+                }, data=payload)
+            except requests.exceptions.ConnectionError as e:
+                delay = CONNECT_BACKOFF * (2 ** attempt)
+                print(
+                    f"连接失败 (attempt {attempt + 1}/{CONNECT_RETRIES}): {e}. "
+                    f"{delay}s 后重试...",
+                    flush=True,
+                )
+                if attempt == CONNECT_RETRIES - 1:
+                    self._rebuild_session()
+                    try:
+                        resp = self.session.post(url=comment_url, headers={
+                            "Cache-Control": "no-cache",
+                            "Referer": self.base_url,
+                        }, data=payload)
+                    except requests.exceptions.ConnectionError:
+                        print("重建会话后仍连接失败，跳过本次评论", flush=True)
+                        return count
+                else:
+                    time.sleep(delay)
+                    continue
+            break  # request succeeded
 
         if "发布成功" in resp.text:
             count += 1
@@ -172,3 +202,14 @@ class SoushubarClient:
                 print(f"当前银币数量: {coins}")
         except Exception:
             pass
+
+    def _rebuild_session(self):
+        """Recreate session and re-login after connection failures."""
+        print("正在重建会话...", flush=True)
+        self.session = requests.Session()
+        self.session.headers.update({"User-Agent": USER_AGENT})
+        try:
+            self._login()
+        except Exception as e:
+            print(f"重建会话时登录失败: {e}", flush=True)
+            raise
